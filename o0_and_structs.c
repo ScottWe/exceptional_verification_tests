@@ -1,14 +1,26 @@
-// This produces an erroneous counterexample when executed with,
-//   sea exe-cex -O0 --inline -o cexexe
-// However, it will work if line 21 is changed to int and line 33 is changed to
-// `tmp.d_nd = 0;`. This is interesting, as d_nd is only referenced at lines 21
-// and 33.
+// RUN: %sea exe-cex %s -O0 --inline --verify 2>&1 | OutputCheck %s
+// CHECK: ^__VERIFIER_error was executed$
+// XFAIL: true
+
+/*
+ * This produces an erroneous counterexample when executed with,
+ *   sea exe-cex -O0 --inline -o cexexe
+ * However, it will work if line 21 is changed to int and line 33 is changed to
+ * `tmp.d_nd = 0;`. This is interesting, as d_nd is only referenced at lines 21
+ * and 33.
+ *
+ * From examining the LLVM bytecode, it seems that when the nested structure is
+ * present, the LLVM memcpy is not elided.
+ */
+
 #include "stdint.h"
 #include "seahorn/seahorn.h"
+
 extern unsigned int nd_addr(void);
 extern int nd_bool(void);
 extern int nd_call(void);
 extern int nd_int(void);
+
 struct sol_int256 { int64_t v; };
 typedef struct sol_int256 sol_int256_t;
 static inline sol_int256_t Init_sol_int256_t(int64_t v) {
@@ -16,6 +28,7 @@ static inline sol_int256_t Init_sol_int256_t(int64_t v) {
   tmp.v = v;
   return tmp;
 }
+
 struct Map {
   int m_set;
   unsigned int m_curr;
@@ -27,6 +40,7 @@ struct PositiveMap {
   unsigned int d_j;
   unsigned int d_k;
 };
+
 struct Map Init_Map(void) {
   struct Map tmp;
   tmp.m_set = 0;
